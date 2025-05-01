@@ -15,13 +15,27 @@ const ChatWindow = () => {
   console.log("Guest ID:", guestId); // Debugging log
 
   useEffect(() => {
+    if (!guestId) {
+      console.error("Guest ID is missing.");
+      return;
+    }
+
+    console.log("API URL:", `${import.meta.env.VITE_API_BASE_URL}/hotel-chats/${guestId}`); // Debugging log
+
+    // Fetch messages between the guest and the system
     const fetchMessages = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotel-chats/${guestId}`);
-        console.log("Fetched messages:", response.data);
-        setMessages(response.data);
+        console.log("API Response:", response.data); // Debugging log
+        if (Array.isArray(response.data)) {
+          setMessages(response.data);
+        } else {
+          console.error("Unexpected response format:", response.data);
+          setMessages([]); // Fallback to an empty array
+        }
       } catch (error) {
-        console.error("Failed to fetch messages:", error.response?.data || error.message);
+        console.error("Failed to fetch messages:", error);
+        setMessages([]); // Fallback to an empty array
       }
     };
 
@@ -32,13 +46,14 @@ const ChatWindow = () => {
     if (!newMessage.trim()) return;
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/hotel-chats/${guestId}`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/hotel-chats`, {
+        _id: guestId, // Use the actual guest ID
         chat_message: newMessage,
         sender_type: "guest",
       });
 
       console.log("Message sent successfully:", response.data);
-      setMessages((prev) => [...prev, response.data.chat]);
+      setMessages((prev) => [...prev, response.data.chat]); // Append the new message to the list
       setNewMessage("");
     } catch (error) {
       console.error("Failed to send message:", error.response?.data || error.message);
@@ -71,9 +86,7 @@ const ChatWindow = () => {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
-        <Button onClick={handleSendMessage}>
-          <span>Send</span>
-        </Button>
+        <Button onClick={handleSendMessage}>Send</Button>
       </div>
     </div>
   );
